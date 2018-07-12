@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 
 /**
  * Talk to server using telnet 3000
+ * Example of a blocking server, uses thread pool to offload connection to another thread which responds back
  *
  */
 public class BlockingServerDemo {
