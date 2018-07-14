@@ -6,6 +6,7 @@ import java.nio.charset.Charset;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -38,14 +39,23 @@ public class NettyServerDemo {
 			// set the class to be used to create, NioServerSocketChannel has NIO selector
 			// based implementation to accept new connections.
 			b.channel(NioServerSocketChannel.class);
-			// set the child handler to be used for serving requests for this channel
+			// set the child handler to be used for serving requests for this channel, since we are using ServerBootstrap, each client will have a new child handler
 			b.childHandler(getHandler());
 			//set the local address and port
 			b.localAddress(new InetSocketAddress(3002));
 			// Create a new channel and bind it to the declared port.
-			b.bind().sync();
+			ChannelFuture cf = b.bind().sync();
+			//close future is the channel future which will be notified when channel is close
+			cf.channel().closeFuture().sync();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				//Signals this executor that the caller wants the executor to be shut down.  Once this method is called,
+				group.shutdownGracefully().sync();
+			} catch (InterruptedException e) {
+				//no-op
+			}
 		}
 	}
 
@@ -63,6 +73,7 @@ public class NettyServerDemo {
 				ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
 					@Override
 					public void channelActive(ChannelHandlerContext ctx) throws Exception {
+						//write and flush can be queued, and returns a future
 						ctx.writeAndFlush(buf).addListener(ChannelFutureListener.CLOSE);
 					}
 				});
